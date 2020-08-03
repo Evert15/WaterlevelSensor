@@ -10,16 +10,17 @@ String E78LoraWan_module::sendRawCommand(String command)
 	while (_serial.available())
 		_serial.read();
 	_serial.println(command);
-	String ret = _serial.read();
-	ret.trim();
-
+	delay(50); 
+	String ret = "";
+	while (_serial.available())  ret=_serial.readString();
 	return ret;
 }
 
 E78LoraWan_module::E78LoraWan_module(Stream& serial):
 _serial(serial)
 {
-	_serial.setTimeout(2000);
+	_serial.setTimeout(3000);
+	
 }
 
 bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
@@ -59,7 +60,7 @@ bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
 	// Using it is also only necessary in limited situations.
 	// Therefore disable it by default.
 	sendRawCommand("AT+CADR=0");
-	_serial.setTimeout(30000);
+	_serial.setTimeout(3000);
 	sendRawCommand("AT+CSAVE");
 
 	//OTAA with maximum power
@@ -87,9 +88,9 @@ bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
 	// Only try fourtimes to join, then return and let the user handle it.
 	for (int i = 0; i < 3 && !joined; i++)
 	{
-		sendRawCommand("AT+CJOIN=1,1,10,1");
-		receivedData = _serial.readStringUntil('N');
-		if (receivedData.endsWith("CJOIN"))
+		receivedData = sendRawCommand("AT+CJOIN=1,1,10,1");
+		receivedData = receivedData.substring(0, 12);
+		if (receivedData.endsWith("CJOIN:OK"))
 		{
 			joined = true;
 			delay(10000);
