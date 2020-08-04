@@ -51,7 +51,7 @@ bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
 	if (AppKey.length() == 32)
 	{
 		_appskey = AppKey; //reuse the same variable as for ABP
-		sendRawCommand("AT+CAPPKEY" + _appskey);
+		sendRawCommand("AT+CAPPKEY=" + _appskey);
 	}
 
 	// Power set for the module
@@ -60,7 +60,6 @@ bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
 	// Using it is also only necessary in limited situations.
 	// Therefore disable it by default.
 	sendRawCommand("AT+CADR=0");
-	_serial.setTimeout(3000);
 	sendRawCommand("AT+CSAVE");
 
 	//OTAA with maximum power
@@ -90,7 +89,8 @@ bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
 	{
 		receivedData = sendRawCommand("AT+CJOIN=1,1,10,1");
 		receivedData = receivedData.substring(0, 12);
-		if (receivedData.endsWith("CJOIN:OK"))
+		//_serial.println(receivedData);
+		if (receivedData.endsWith("+CJOIN"))
 		{
 			joined = true;
 			delay(10000);
@@ -112,7 +112,8 @@ bool E78LoraWan_module::setTXpower(int power)
 	String response = "";
 	if ((power >= 0) && (power <= 7))
 	{
-		response = sendRawCommand("AT+CTXP" + power);
+		response = "AT+CTXP=" + String(power);
+		response = sendRawCommand(response);
 		response.trim();
 		if (response.equals("OK")) succes = true;
 		else succes = false;
