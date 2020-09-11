@@ -93,7 +93,7 @@ public:
 	* This can be overwritten by the network when using OTAA.
 	* So to force a datarate, call this function after initOTAA().
 	*/
-	void setDR(int dr);
+	bool setDR(int dr);
 
 	/*
 	* Get the data rate used by the transmissions
@@ -135,7 +135,6 @@ public:
 	/*
     * Send a raw command to the E78 module.
     * Returns the raw string as received back from the E78.
-    * If the E78 replies with multiple line, only the first line will be returned.
     */
 	String sendRawCommand(String command);
 

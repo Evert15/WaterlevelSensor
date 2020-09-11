@@ -4,6 +4,68 @@
 
 #include "E78LoraWan_Module.h"
 
+String E78LoraWan_module::base16encode(String input)
+{
+	char charsOut[input.length() * 2 + 1];
+	char charsIn[input.length() + 1];
+	input.trim();
+	input.toCharArray(charsIn, input.length() + 1);
+			unsigned i = 0;
+	for (i = 0; i < input.length() + 1; i++)
+	{
+		if (charsIn[i] == '\0') break;
+		int value = int(charsIn[i]);
+		char buffer[3];
+		sprintf(buffer, "%02x", value);
+		charsOut[2 * i] = buffer[0];
+		charsOut[2 * i + 1] = buffer[1];
+	}
+	charsOut[2 * i] = '\0';
+	String toReturn = String(charsOut);
+	return toReturn;
+}
+
+String E78LoraWan_module::base16decode(String input)
+{
+	char charsIn[input.length() + 1];
+	char charsOut[input.length() / 2 + 1];
+	input.trim();
+	input.toCharArray(charsIn, input.length() + 1);
+
+	unsigned i = 0;
+	for (i = 0; i < input.length() / 2 + 1; i++)
+	{
+		if (charsIn[i * 2] == '\0') break;
+		if (charsIn[i * 2 + 1] == '\0') break;
+
+		char toDo[2];
+		toDo[0] = charsIn[i * 2];
+		toDo[1] = charsIn[i * 2 + 1];
+		int out = strtoul(toDo, 0, 16);
+
+		if (out < 128)
+		{
+			charsOut[i] = char(out);
+		}
+	}
+	charsOut[i] = '\0';
+	return charsOut;
+}
+
+void E78LoraWan_module::sendEncoded(String input)
+{
+	char working;
+	char buffer[3];
+	for (unsigned i = 0; i < input.length(); i++)
+	{
+		working = input.charAt(i);
+		sprintf(buffer, "%02x", int(working));
+		_serial.print(buffer);
+	}
+}
+
+
+
 String E78LoraWan_module::sendRawCommand(String command)
 {
 	delay(100);
@@ -21,6 +83,13 @@ _serial(serial)
 {
 	_serial.setTimeout(3000);
 	
+}
+
+String E78LoraWan_module::sysver()
+{
+	String temp;
+	temp = sendRawCommand("AT+CGMR?");
+	return temp
 }
 
 bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
@@ -106,19 +175,42 @@ bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
 }
 
 
-bool E78LoraWan_module::setTXpower(int power)
+bool E78LoraWan_module::setDR(int SF)
 {
 	bool succes;
-	String response = "";
-	if ((power >= 0) && (power <= 7))
+	String temp = "";
+	if ((SF >= 0) && (SF <= 5))
 	{
-		response = "AT+CTXP=" + String(power);
-		response = sendRawCommand(response);
-		response.trim();
-		if (response.equals("OK")) succes = true;
+		temp = "AT+CDATARATE=" + String(SF);
+		// send the At command for power
+		temp = sendRawCommand(temp);
+		//demand response
+		temp.trim();
+		if (temp.equals("OK")) succes = true;
 		else succes = false;
 	}
 	else succes = false;
 
 	return succes;
 }
+
+bool E78LoraWan_module::setTXpower(int power)
+{
+	bool succes;
+	String temp = "";
+	if ((power >= 0) && (power <= 7))
+	{
+		temp = "AT+CTXP=" + String(power);
+		// send the At command for power
+		temp = sendRawCommand(temp);
+		//demand response
+		temp.trim();
+		if (temp.equals("OK")) succes = true;
+		else succes = false;
+	}
+	else succes = false;
+
+	return succes;
+}
+
+
