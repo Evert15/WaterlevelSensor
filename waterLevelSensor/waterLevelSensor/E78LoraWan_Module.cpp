@@ -27,7 +27,7 @@ String E78LoraWan_module::base16encode(String input)
 
 String E78LoraWan_module::base16decode(String input)
 {
-	char charsIn[input.length() + 1];
+	char charsIn[(input.length() + 1];
 	char charsOut[input.length() / 2 + 1];
 	input.trim();
 	input.toCharArray(charsIn, input.length() + 1);
@@ -50,6 +50,11 @@ String E78LoraWan_module::base16decode(String input)
 	}
 	charsOut[i] = '\0';
 	return charsOut;
+}
+
+TX_RETURN_TYPE E78LoraWan_module::txCommand(String, String, bool)
+{
+	return TX_RETURN_TYPE();
 }
 
 void E78LoraWan_module::sendEncoded(String input)
@@ -89,7 +94,7 @@ String E78LoraWan_module::sysver()
 {
 	String temp;
 	temp = sendRawCommand("AT+CGMR?");
-	return temp
+	return temp;
 }
 
 bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
@@ -137,7 +142,7 @@ bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
 	//start join with OTAA
 	sendRawCommand("AT+CJOINMODE=0");
 	/*
-	* To jpin the Lora Network some settings can be set further
+	* To join the Lora Network some settings can be set further
 	* paramerter 1:
 		1 = start Join proces again in case the automatic join has allready joined the module
 		0 = stop Join disable network
@@ -194,6 +199,21 @@ bool E78LoraWan_module::setDR(int SF)
 	return succes;
 }
 
+int E78LoraWan_module::GetDR()
+{
+	String temp = "";
+	int datarate = -1;
+	temp = sendRawCommand("AT+CDATARATE?");
+	temp.trim();
+	if (temp.endsWith("OK")) {
+		temp = temp.substring(11, 12);
+		datarate = temp.toInt();
+	}
+	else datarate = -1;
+	return datarate;
+}
+
+
 bool E78LoraWan_module::setTXpower(int power)
 {
 	bool succes;
@@ -211,6 +231,22 @@ bool E78LoraWan_module::setTXpower(int power)
 	else succes = false;
 
 	return succes;
+}
+
+String E78LoraWan_module::getRx()
+{
+	String temp = "";
+	temp = sendRawCommand("AT+DRX?");
+	temp.trim();
+	
+	if (temp.endsWith("OK")) {
+		//get the lengt of the payload out of the AT command
+		int length = temp.substring(5, 6).toInt();
+		temp=temp.substring(6, length);
+		temp=base16decode(temp);
+	}
+	else temp = "";
+	return temp;
 }
 
 

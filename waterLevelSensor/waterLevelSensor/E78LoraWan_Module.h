@@ -104,7 +104,7 @@ public:
 	/*
 	* Get the Module SNR of the last received packet. Helpful to debug link quality.
 	*/
-	int getSNR();
+	//int getSNR(int channel);
 
 	/*
 	* Get the transmit power the E78 will use to transmit messages.
@@ -148,21 +148,21 @@ public:
 	TX_RETURN_TYPE tx(String);
 
 	/*
-	* Transmit raw byte encoded data via LoRa WAN.
+	* Transmit raw byte encoded data via LoRaWAN.
 	* This method expects a raw byte array as first parameter.
 	* The second parameter is the count of the bytes to send.
 	*/
 	TX_RETURN_TYPE txBytes(const byte*, uint8_t);
 
 	/*
-	* Do a confirmed transmission via LoRa WAN.
+	* Do a confirmed transmission via LoRaWAN.
 	*
 	* Parameter is an ascii text string.
 	*/
 	TX_RETURN_TYPE txCnf(String);
 
 	/*
-	 * Do an unconfirmed transmission via LoRa WAN.
+	 * Do an unconfirmed transmission via LoRaWAN.
 	 *
 	 * Parameter is an ascii text string.
 	 */
