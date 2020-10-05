@@ -93,7 +93,7 @@ public:
 	* This can be overwritten by the network when using OTAA.
 	* So to force a datarate, call this function after initOTAA().
 	*/
-	bool setDR(int dr);
+	bool setDR(int);
 
 	/*
 	* Get the data rate used by the transmissions
@@ -111,7 +111,7 @@ public:
 	* use an integer between 0 and 7 , 0 corresponding to 17dBm and 7 to 3dBm.
 	*Decrements of 2 are used.
 	*/
-	bool setTXpower(int power);
+	bool setTXpower(int);
 
 	/*
 	* Returns the last downlink message HEX string.
@@ -139,44 +139,61 @@ public:
 	String sendRawCommand(String command);
 
 	/*
+	* Send a raw command to the E78 module.
+	* Returns the true or false depending on a possitive answer received back from the E78.
+	*/
+	bool sendRawCommandConfirmed(String command);
+
+	/*
+	*Set the times an TX will be attempted before a TX fail will be responded
+	*/
+	bool SetTxRetrails(int);
+
+	/*
+	*Get the times an TX will be attempted before a TX fail will be responded
+	*/
+	int GetTxRetrails();
+
+	/*
 	* Transmit the provided data. The data is hex-encoded by this library,
 	* so plain text can be provided.
 	* This function is an alias for txUncnf().
 	*
 	* Parameter is an ascii text string.
 	*/
-	TX_RETURN_TYPE tx(String);
+	int tx(String);
 
 	/*
 	* Transmit raw byte encoded data via LoRaWAN.
 	* This method expects a raw byte array as first parameter.
 	* The second parameter is the count of the bytes to send.
 	*/
-	TX_RETURN_TYPE txBytes(const byte*, uint8_t);
+	int txBytes(const byte*, uint8_t);
 
 	/*
 	* Do a confirmed transmission via LoRaWAN.
 	*
 	* Parameter is an ascii text string.
 	*/
-	TX_RETURN_TYPE txCnf(String);
+	int txCnf(String);
 
 	/*
 	 * Do an unconfirmed transmission via LoRaWAN.
 	 *
 	 * Parameter is an ascii text string.
 	 */
-	TX_RETURN_TYPE txUncnf(String);
+	int txUncnf(String);
 
 	/*
 	 * Transmit the provided data using the provided command.
 	 *
 	 * String - the tx command to send
-				can only be one of "mac tx cnf 1 " or "mac tx uncnf 1 "
+	 *			can only be one of "mac tx cnf 1 " or "mac tx uncnf 1 
 	 * String - an ascii text string if bool is true. A HEX string if bool is false.
+	 * bool - should the transmission be confirmed or not
 	 * bool - should the data string be hex encoded or not
 	 */
-	TX_RETURN_TYPE txCommand(String, String, bool);
+	int txCommand(String, bool,bool);
 
 private:
 
@@ -202,7 +219,8 @@ private:
 	// The downlink messenge
 	String _rxMessenge = "";
 
-	void sendEncoded(String);
+	int _TXretrails = 5;
+
 
 };
 

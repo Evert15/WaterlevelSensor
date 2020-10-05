@@ -10,7 +10,7 @@ String E78LoraWan_module::base16encode(String input)
 	char charsIn[input.length() + 1];
 	input.trim();
 	input.toCharArray(charsIn, input.length() + 1);
-			unsigned i = 0;
+	unsigned i = 0;
 	for (i = 0; i < input.length() + 1; i++)
 	{
 		if (charsIn[i] == '\0') break;
@@ -27,7 +27,7 @@ String E78LoraWan_module::base16encode(String input)
 
 String E78LoraWan_module::base16decode(String input)
 {
-	char charsIn[(input.length() + 1];
+	char charsIn[input.length() + 1];
 	char charsOut[input.length() / 2 + 1];
 	input.trim();
 	input.toCharArray(charsIn, input.length() + 1);
@@ -52,24 +52,64 @@ String E78LoraWan_module::base16decode(String input)
 	return charsOut;
 }
 
-TX_RETURN_TYPE E78LoraWan_module::txCommand(String, String, bool)
+int E78LoraWan_module::txCnf(String data)
 {
-	return TX_RETURN_TYPE();
+	return txCommand(data, true, true);
 }
 
-void E78LoraWan_module::sendEncoded(String input)
+int E78LoraWan_module::txUncnf(String data)
 {
-	char working;
-	char buffer[3];
-	for (unsigned i = 0; i < input.length(); i++)
-	{
-		working = input.charAt(i);
-		sprintf(buffer, "%02x", int(working));
-		_serial.print(buffer);
+	return txCommand(data, false, true);
+}
+
+int E78LoraWan_module::txCommand(String data, bool confirmed, bool shouldEncode)
+{
+	int testcounter;
+	String temp = "";
+	int Type = 0;
+	String Link = "";
+	int length;
+	if (confirmed) {
+		bool succes;
+		while (!succes)
+		{
+			succes = sendRawCommandConfirmed("AT+CCONFIRM=1");
+			testcounter++;
+			if (testcounter > 4) return TX_FAIL;
+		}
+	}
+	else {
+		bool succes;
+		while (!succes)
+		{
+			succes = sendRawCommandConfirmed("AT+CCONFIRM=0");
+			testcounter++;
+			if (testcounter > 4) return TX_FAIL;
+		}
+	}
+
+	if (shouldEncode) {
+		data = base16encode(data);
+	}
+	else data = data;
+	length = data.length();
+	temp = "AT+DTRX=" + String(length) + "," + String(data);
+	temp = sendRawCommand(temp);
+	if (temp.startsWith("ERR")) return TX_FAIL;
+	else {
+		if (temp.substring(11, 13).startsWith("ERR")) return TX_FAIL;
+		else {
+			if (temp.substring(23, 31).equals("OK+RECV")) {
+				Type = temp.substring(23, 31).toInt();
+				if((Type)!=0) {
+					return TX_WITH_RX;
+				}
+				else return TX_SUCCESS;
+			}
+			else return TX_SUCCESS;
+		}
 	}
 }
-
-
 
 String E78LoraWan_module::sendRawCommand(String command)
 {
@@ -81,6 +121,59 @@ String E78LoraWan_module::sendRawCommand(String command)
 	String ret = "";
 	while (_serial.available())  ret=_serial.readString();
 	return ret;
+}
+
+bool E78LoraWan_module::sendRawCommandConfirmed(String command)
+{
+	bool succes;
+	delay(100);
+	while (_serial.available())
+		_serial.read();
+	_serial.println(command);
+	delay(50);
+	String ret = "";
+	while (_serial.available())  ret = _serial.readString();
+	ret.trim();
+	if (ret.equals("OK")) succes = true;
+	else succes = false;
+	return succes;
+}
+
+bool E78LoraWan_module::SetTxRetrails(int TXretrails)
+{
+	bool succes;
+	_TXretrails = TXretrails;
+	if (0 <= TXretrails <= 15)
+	{
+		String temp = "AT+CNBTRAILS=0," + String(_TXretrails);
+		succes = sendRawCommandConfirmed(temp);
+	}
+	else succes = false;
+}
+
+int E78LoraWan_module::GetTxRetrails()
+{
+	return _TXretrails;
+}
+
+int E78LoraWan_module::tx(String data)
+{
+	return txUncnf(data);
+}
+
+int E78LoraWan_module::txBytes(const byte * data, uint8_t size)
+{
+	char msgBuffer[size * 2 + 1];
+
+	char buffer[3];
+	for (unsigned i = 0; i < size; i++)
+	{
+		sprintf(buffer, "%02X", data[i]);
+		memcpy(&msgBuffer[i * 2], &buffer, sizeof(buffer));
+	}
+	String dataToTx(msgBuffer);
+	return txCommand("mac tx uncnf 1 ", dataToTx, false);
+	return ;
 }
 
 E78LoraWan_module::E78LoraWan_module(Stream& serial):
@@ -134,6 +227,10 @@ bool E78LoraWan_module::initOTAA(String AppEUI, String AppKey, String DevEUI)
 	// Using it is also only necessary in limited situations.
 	// Therefore disable it by default.
 	sendRawCommand("AT+CADR=0");
+
+	// set send retrails to 5 (default)
+	SetTxRetrails(_TXretrails);
+
 	sendRawCommand("AT+CSAVE");
 
 	//OTAA with maximum power
@@ -188,14 +285,10 @@ bool E78LoraWan_module::setDR(int SF)
 	{
 		temp = "AT+CDATARATE=" + String(SF);
 		// send the At command for power
-		temp = sendRawCommand(temp);
+		succes = sendRawCommandConfirmed(temp);
 		//demand response
-		temp.trim();
-		if (temp.equals("OK")) succes = true;
-		else succes = false;
 	}
 	else succes = false;
-
 	return succes;
 }
 
@@ -222,11 +315,7 @@ bool E78LoraWan_module::setTXpower(int power)
 	{
 		temp = "AT+CTXP=" + String(power);
 		// send the At command for power
-		temp = sendRawCommand(temp);
-		//demand response
-		temp.trim();
-		if (temp.equals("OK")) succes = true;
-		else succes = false;
+		succes = sendRawCommandConfirmed(temp);
 	}
 	else succes = false;
 
@@ -240,7 +329,7 @@ String E78LoraWan_module::getRx()
 	temp.trim();
 	
 	if (temp.endsWith("OK")) {
-		//get the lengt of the payload out of the AT command
+		//get the length of the payload out of the AT command
 		int length = temp.substring(5, 6).toInt();
 		temp=temp.substring(6, length);
 		temp=base16decode(temp);
