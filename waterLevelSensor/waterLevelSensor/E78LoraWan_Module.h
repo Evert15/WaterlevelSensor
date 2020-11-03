@@ -168,7 +168,7 @@ public:
 	* This method expects a raw byte array as first parameter.
 	* The second parameter is the count of the bytes to send.
 	*/
-	int txBytes(const byte*, uint8_t);
+	int txBytes(const byte*, uint8_t , bool);
 
 	/*
 	* Do a confirmed transmission via LoRaWAN.
@@ -221,7 +221,7 @@ private:
 
 	int _TXretrails = 5;
 
-
+ String _returnstring = "";
 };
 
 

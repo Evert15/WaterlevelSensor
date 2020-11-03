@@ -66,26 +66,15 @@ int E78LoraWan_module::txCommand(String data, bool confirmed, bool shouldEncode)
 {
 	int testcounter;
 	String temp = "";
+  int confirm = 0;
 	int Type = 0;
 	String Link = "";
 	int length;
 	if (confirmed) {
-		bool succes;
-		while (!succes)
-		{
-			succes = sendRawCommandConfirmed("AT+CCONFIRM=1");
-			testcounter++;
-			if (testcounter > 4) return TX_FAIL;
-		}
+   confirm = 1;
 	}
 	else {
-		bool succes;
-		while (!succes)
-		{
-			succes = sendRawCommandConfirmed("AT+CCONFIRM=0");
-			testcounter++;
-			if (testcounter > 4) return TX_FAIL;
-		}
+		confirm = 0;
 	}
 
 	if (shouldEncode) {
@@ -93,16 +82,20 @@ int E78LoraWan_module::txCommand(String data, bool confirmed, bool shouldEncode)
 	}
 	else data = data;
 	length = data.length();
-	temp = "AT+DTRX=" + String(length) + "," + String(data);
+	temp = "AT+DTRX=" + String(confirm) + "," + String(_TXretrails) + "," + String(length) + "," + String(data);
 	temp = sendRawCommand(temp);
+  temp.trim();
 	if (temp.startsWith("ERR")) return TX_FAIL;
 	else {
-		if (temp.substring(11, 13).startsWith("ERR")) return TX_FAIL;
+		if (temp.substring(14, 21).startsWith("ERR")) return TX_FAIL;
 		else {
-			if (temp.substring(23, 31).equals("OK+RECV")) {
-				Type = temp.substring(23, 31).toInt();
-				if((Type)!=0) {
+			if (temp.substring(28, 35).equals("OK+RECV")) {
+				Type = temp.substring(37, 38).toInt();
+        //Serial.println(Type);
+				if(Type != 0) {
 					return TX_WITH_RX;
+          _returnstring = temp.substring(54,+temp.length());
+          
 				}
 				else return TX_SUCCESS;
 			}
@@ -141,14 +134,7 @@ bool E78LoraWan_module::sendRawCommandConfirmed(String command)
 
 bool E78LoraWan_module::SetTxRetrails(int TXretrails)
 {
-	bool succes;
 	_TXretrails = TXretrails;
-	if (0 <= TXretrails <= 15)
-	{
-		String temp = "AT+CNBTRAILS=0," + String(_TXretrails);
-		succes = sendRawCommandConfirmed(temp);
-	}
-	else succes = false;
 }
 
 int E78LoraWan_module::GetTxRetrails()
@@ -161,7 +147,7 @@ int E78LoraWan_module::tx(String data)
 	return txUncnf(data);
 }
 
-int E78LoraWan_module::txBytes(const byte * data, uint8_t size)
+int E78LoraWan_module::txBytes(const byte * data, uint8_t size , bool confirm)
 {
 	char msgBuffer[size * 2 + 1];
 
@@ -169,11 +155,11 @@ int E78LoraWan_module::txBytes(const byte * data, uint8_t size)
 	for (unsigned i = 0; i < size; i++)
 	{
 		sprintf(buffer, "%02X", data[i]);
-		memcpy(&msgBuffer[i * 2], &buffer, sizeof(buffer));
+		memcpy(&msgBuffer[i], &buffer, sizeof(buffer));
 	}
 	String dataToTx(msgBuffer);
-	return txCommand("mac tx uncnf 1 ", dataToTx, false);
-	return ;
+  if(confirm) return txCommand(dataToTx,true,false);
+  else return txCommand(dataToTx,false,false);
 }
 
 E78LoraWan_module::E78LoraWan_module(Stream& serial):
@@ -324,18 +310,20 @@ bool E78LoraWan_module::setTXpower(int power)
 
 String E78LoraWan_module::getRx()
 {
+  /*
 	String temp = "";
 	temp = sendRawCommand("AT+DRX?");
-	temp.trim();
-	
 	if (temp.endsWith("OK")) {
 		//get the length of the payload out of the AT command
 		int length = temp.substring(5, 6).toInt();
-		temp=temp.substring(6, length);
+		temp=temp.substring(7, length);
 		temp=base16decode(temp);
+    Serial.println(temp);
 	}
 	else temp = "";
 	return temp;
+  */
+  return _returnstring;
 }
 
 
